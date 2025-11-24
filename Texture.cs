@@ -36,41 +36,50 @@ public class Texture : IDisposable
     /// <summary>
     /// テクスチャを描画する (左上が X0, Y0 の座標系)
     /// </summary>
-    public void Draw(float x, float y, Rectangle? sourceRect = null, Vector2? drawOrigin = null, bool reverseX = false, bool reverseY = false)
+    public void Draw(
+        ReferencePoint? referencePoint,
+        float x, float y,
+        Rectangle? sourceRect = null,
+        float alpha = 1.0f,
+        float? rotation = null,
+        Vector2? scale = null,
+        Vector2? drawOrigin = null,
+        bool reverseX = false,
+        bool reverseY = false)
     {
         if (!IsEnable) return;
 
         Rectangle source = sourceRect ?? new Rectangle(0, 0, RayTexture.Width, RayTexture.Height);
+
+        // 引数で上書き可能にする
+        Vector2 actualScale = scale ?? Scale;
+        float actualRotation = rotation ?? Rotation;
+        ReferencePoint actualRef = referencePoint ?? ReferencePoint;
+
         // 反転処理
         if (reverseX) source.Width = -source.Width;
         if (reverseY) source.Height = -source.Height;
-        Vector2 origin = drawOrigin ?? GetReferencePoint(source);
-        // スケールを考慮したオリジン調整
-        origin.X *= (float)Scale.X;
-        origin.Y *= (float)Scale.Y;
-        Vector2 position = new Vector2(x, y);
-        Vector2 scale = new Vector2(Scale.X, Scale.Y);
-        Color color = new Color(255, 255, 255, (int)(Opacity * 255));
+
+        Vector2 origin = drawOrigin ?? GetReferencePoint(source, actualRef);
+        origin.X *= actualScale.X;
+        origin.Y *= actualScale.Y;
+
+        Color color = new Color(255, 255, 255, (int)(Math.Clamp(alpha, 0f, 1f) * 255));
 
         Raylib.BeginBlendMode(BlendMode);
-        Raylib.DrawTexturePro(RayTexture, source, new Rectangle(x, y, source.Width * scale.X, source.Height * scale.Y), origin, Rotation, color);
+        Raylib.DrawTexturePro(
+            RayTexture,
+            source,
+            new Rectangle(x, y, source.Width * actualScale.X, source.Height * actualScale.Y),
+            origin,
+            actualRotation,
+            color);
         Raylib.EndBlendMode();
     }
 
-    /// <summary>
-    /// 画面中央を基準に描画 (AviutlやYMM4の座標系)
-    /// </summary>
-    public void DrawCenteredCoords(float x, float y, Rectangle? sourceRect = null, Vector2? drawOrigin = null, bool reverseX = false, bool reverseY = false)
+    private Vector2 GetReferencePoint(Rectangle rect, ReferencePoint reference)
     {
-        Rectangle source = sourceRect ?? new Rectangle(0, 0, RayTexture.Width, RayTexture.Height);
-        Vector2 origin = drawOrigin ?? GetReferencePoint(source);
-
-        Draw(1920 / 2 + x, 1080 / 2 + y, sourceRect, origin, reverseX, reverseY);
-    }
-
-    private Vector2 GetReferencePoint(Rectangle rect)
-    {
-        return ReferencePoint switch
+        return reference switch
         {
             ReferencePoint.TopLeft => new Vector2(0, 0),
             ReferencePoint.TopCenter => new Vector2(rect.Width / 2, 0),
@@ -84,7 +93,6 @@ public class Texture : IDisposable
             _ => new Vector2(0, 0),
         };
     }
-
     /// <summary>
     /// 有効かどうか
     /// </summary>
