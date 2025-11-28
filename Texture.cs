@@ -40,7 +40,7 @@ public class Texture : IDisposable
         ReferencePoint? referencePoint,
         float x, float y,
         Rectangle? sourceRect = null,
-        float alpha = 1.0f,
+        Color? color = null,
         float? rotation = null,
         Vector2? scale = null,
         Vector2? drawOrigin = null,
@@ -64,7 +64,8 @@ public class Texture : IDisposable
         origin.X *= actualScale.X;
         origin.Y *= actualScale.Y;
 
-        Color color = new Color(255, 255, 255, (int)(Math.Clamp(alpha, 0f, 1f) * 255));
+        // Color が指定されていない場合は白を使う（透明度は既存のalpha計算で設定）
+        Color actualColor = color ?? new Color(255, 255, 255, 255);
 
         Raylib.BeginBlendMode(BlendMode);
         Raylib.DrawTexturePro(
@@ -73,7 +74,7 @@ public class Texture : IDisposable
             new Rectangle(x, y, source.Width * actualScale.X, source.Height * actualScale.Y),
             origin,
             actualRotation,
-            color);
+            actualColor);
         Raylib.EndBlendMode();
     }
 
