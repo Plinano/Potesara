@@ -24,6 +24,9 @@ public static class TextureManager
         var tex = new Texture(path);
         if (tex.IsEnable)
         {
+            // Bilinear フィルタを設定
+            Raylib.SetTextureFilter(tex.RayTexture, TextureFilter.Bilinear);
+
             textures[key] = tex;
         }
         else
