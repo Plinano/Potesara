@@ -1,13 +1,19 @@
 ﻿using Raylib_cs;
+using System.Numerics;
 
 namespace Potesara;
 
 public class SceneManager
 {
+    private RenderTexture2D virtualScreen;
+
     public SceneManager()
     {
         Scenes = new List<Scene>();
         CurrentScene = null;
+
+        // 仮想スクリーンサイズを固定
+        virtualScreen = Raylib.LoadRenderTexture(1920, 1080);
     }
 
     /// <summary>
@@ -16,14 +22,14 @@ public class SceneManager
     /// <param name="scene">切り替えるシーン。</param>
     public void ChangeScene(Scene scene)
     {
+        if (CurrentScene != null && CurrentScene != scene)
+        {
+            CurrentScene.Disable();
+        }
+
         CurrentScene = scene;
 
         if (!Scenes.Contains(scene))
-        {
-            Scenes.Add(scene); // 未登録のシーンを追加
-        }
-
-        if (CurrentScene != null && CurrentScene != scene)
         {
             CurrentScene.Disable(); // 現在のシーンを無効化
         }
@@ -95,15 +101,34 @@ public class SceneManager
     }
 
     /// <summary>
-    /// 描画します（現在のシーンのみ）。
+    /// 仮想スクリーンに描画して、ウィンドウにスケーリングして表示
     /// </summary>
     public void Draw()
     {
         if (CurrentScene == null) return;
 
-        Raylib.ClearBackground(Color.Black); // 背景色をクリア
+        // RenderTexture に描画開始
+        Raylib.BeginTextureMode(virtualScreen);
+        Raylib.ClearBackground(Color.Black);
 
-        CurrentScene.Draw(); // 現在のシーンを描画
+        CurrentScene.Draw();
+
+        Raylib.EndTextureMode();
+
+        // フィルタリング設定
+        Raylib.SetTextureFilter(virtualScreen.Texture, TextureFilter.Bilinear);
+
+        float scaleX = (float)Raylib.GetScreenWidth() / virtualScreen.Texture.Width;
+        float scaleY = (float)Raylib.GetScreenHeight() / virtualScreen.Texture.Height;
+
+        Raylib.DrawTexturePro(
+            virtualScreen.Texture,
+            new Rectangle(0, 0, virtualScreen.Texture.Width, -virtualScreen.Texture.Height),
+            new Rectangle(0, 0, virtualScreen.Texture.Width * scaleX, virtualScreen.Texture.Height * scaleY),
+            new Vector2(0, 0),
+            0,
+            Color.White
+        );
     }
 
     /// <summary>
@@ -116,4 +141,9 @@ public class SceneManager
 
     public List<Scene> Scenes { get; private set; }
     public Scene CurrentScene { get; private set; }
+
+    public void Unload()
+    {
+        Raylib.UnloadRenderTexture(virtualScreen);
+    }
 }
